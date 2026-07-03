@@ -1,27 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── CardioSense AI Premium Design Tokens (Modern Light Mode) ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Palette */
+  --bg:           #fafafa;
+  --bg-gradient:  linear-gradient(to bottom, #ffffff 0%, #f7f7f8 100%);
+  --surface:      #ffffff;
+  --surface-2:    #f4f4f6;
+  --surface-3:    #eaebee;
+  --border:       #eef0f2;
+  --border-dark:  #e2e4e8;
+  --text:         #121316;
+  --text-muted:   #606470;
+  --text-subtle:  #949aa8;
+
+  /* Semantic - Rose/Coral Accents */
+  --risk-high:    #f43f5e;   /* Rose 500 */
+  --risk-mod:     #f59e0b;   /* Amber 500 */
+  --risk-low:     #10b981;   /* Emerald 500 */
+  --accent:       #e11d48;   /* Rose 600 */
+  --accent-soft:  #fff1f2;   /* Rose 50 */
+  --accent-glow:  rgba(225, 29, 72, 0.08);
+
+  /* Theme variables used in Tailwind config to decouple from shadcn HSL variable overrides */
+  --theme-bg:           var(--bg);
+  --theme-surface:      var(--surface);
+  --theme-surface-2:    var(--surface-2);
+  --theme-surface-3:    var(--surface-3);
+  --theme-border:       #eef0f2;
+  --theme-border-dark:  var(--border-dark);
+  --theme-text:         var(--text);
+  --theme-text-muted:   var(--text-muted);
+  --theme-text-subtle:  var(--text-subtle);
+  --theme-accent:       #e11d48;   /* Rose 600 */
+  --theme-accent-soft:  var(--accent-soft);
+  --theme-accent-glow:  var(--accent-glow);
+
+  /* Fonts */
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body:    'Outfit', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* Radius */
+  --radius-sm:    8px;
+  --radius:       16px;
+  --radius-lg:    24px;
+
+  /* shadcn overrides */
+  --background:   0 0% 100%;
+  --foreground:   222.2 84% 4.9%;
+  --card:         0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover:      0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary:      343.4 79.7% 50%;
+  --primary-foreground: 210 40% 98%;
+  --secondary:    210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted:        210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent:       210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive:  0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border:       214.3 31.8% 91.4%;
+  --input:        214.3 31.8% 91.4%;
+  --ring:         343.4 79.7% 50%;
+  --radius:       1rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  background-image: var(--bg-gradient);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* ── Typography ── */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ── Custom Utilities ── */
+.text-risk-high  { color: var(--risk-high); }
+.text-risk-mod   { color: var(--risk-mod); }
+.text-risk-low   { color: var(--risk-low); }
+
+.bg-risk-high {
+  background-color: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.16);
+  color: var(--risk-high);
+}
+.bg-risk-mod {
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  color: var(--risk-mod);
+}
+.bg-risk-low {
+  background-color: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.16);
+  color: var(--risk-low);
+}
+
+/* ── Glassmorphism and Cards ── */
+.cs-card {
+  background: var(--surface);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 25px -5px rgba(18, 19, 22, 0.03), 0 8px 10px -6px rgba(18, 19, 22, 0.02);
+  padding: 1.5rem;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+}
+
+.cs-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 35px -10px rgba(18, 19, 22, 0.06), 0 10px 15px -8px rgba(18, 19, 22, 0.04);
+  border-color: var(--border-dark);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(18, 19, 22, 0.05);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius);
+}
+
+/* ── Micro Animations ── */
+@keyframes heartFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.05); }
+}
+.animate-heart-float {
+  animation: heartFloat 3s ease-in-out infinite;
+}
+
+@keyframes ecgLine {
+  to { stroke-dashoffset: -1000; }
+}
+.animate-ecg-line {
+  stroke-dasharray: 20, 5;
+  animation: ecgLine 40s linear infinite;
+}
+
+/* ── Glow Button CTA ── */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  transform: scale(0);
+  transition: transform 0.5s ease-out;
+  pointer-events: none;
+}
+.btn-glow:hover::after {
+  transform: scale(2);
+}
+
+/* ── Input styling overrides for Light Mode ── */
+input, select, textarea {
+  background: var(--theme-surface-2) !important;
+  border: 1px solid var(--theme-border) !important;
+  color: var(--theme-text) !important;
+  font-family: var(--font-body);
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+input:focus, select:focus, textarea:focus {
+  background: var(--theme-surface) !important;
+  border-color: var(--theme-accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 4px var(--theme-accent-glow) !important;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-subtle) !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #e2e4e8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cdd1d8;
 }
