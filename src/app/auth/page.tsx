@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { login, register } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { 
   Heart, Mail, Lock, User, Eye, EyeOff, 
@@ -26,7 +25,7 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
-  const { refresh, user } = useAuth();
+  const { refresh, user, login, register } = useAuth();
   const router = useRouter();
 
   // Redirect if logged in

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createAssessment, ClinicalFeatures } from "@/lib/api";
+import { createAssessment, ClinicalFeatures, getToken } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { 
@@ -160,6 +160,8 @@ export default function AssessPage() {
   const runPredictionPipeline = async () => {
     setStep(4);
     setError("");
+    setPredictionLogs([]);
+    setPredictionStep(0);
     
     const logs = [
       "Initalizing multi-branch classification pipeline...",
@@ -170,19 +172,81 @@ export default function AssessPage() {
       "Finalizing diagnostic report and SHAP explanations..."
     ];
 
-    for (let i = 0; i < logs.length; i++) {
-      setPredictionStep(i);
-      setPredictionLogs(prev => [...prev, logs[i]]);
-      await new Promise(resolve => setTimeout(resolve, 600)); // Latency delay
-    }
-
     try {
       const clinical = { ...values } as ClinicalFeatures;
-      const res = await createAssessment({
-        clinical,
-        ecg_filename: ecgFile?.name
+      const ecg_signal = ecgFile ? Array.from({ length: 12000 }, () => Math.random() - 0.5) : null;
+      
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      
+      const response = await fetch(`${API_URL}/assess/run-stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${getToken() || ""}`,
+        },
+        body: JSON.stringify({
+          clinical,
+          ecg_signal,
+        }),
       });
-      router.push(`/results/${res.assessment_id}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Model analysis failed");
+      }
+
+      if (!response.body) {
+        throw new Error("ReadableStream not supported by this browser.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          if (trimmed.startsWith("ERROR:")) {
+            throw new Error(trimmed.substring(6));
+          }
+
+          if (trimmed === "INIT_PIPELINE") {
+            setPredictionStep(0);
+            setPredictionLogs([logs[0]]);
+          } else if (trimmed === "RUNNING_CLINICAL_RF") {
+            setPredictionStep(1);
+            setPredictionLogs(prev => [...prev, logs[1]]);
+          } else if (trimmed === "RUNNING_ECG_CNN") {
+            setPredictionStep(2);
+            setPredictionLogs(prev => [...prev, logs[2]]);
+          } else if (trimmed === "CALIBRATING_PLATT") {
+            setPredictionStep(3);
+            setPredictionLogs(prev => [...prev, logs[3]]);
+          } else if (trimmed === "GATING_NODE_COMPLETE") {
+            setPredictionStep(4);
+            setPredictionLogs(prev => [...prev, logs[4]]);
+          } else if (trimmed.startsWith("FINAL_REPORT_READY:")) {
+            setPredictionStep(5);
+            setPredictionLogs(prev => [...prev, logs[5]]);
+            
+            const jsonStr = trimmed.substring("FINAL_REPORT_READY:".length);
+            const report = JSON.parse(jsonStr);
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            router.push(`/results/${report.assessment_id}`);
+            return;
+          }
+        }
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Model analysis failed");
       setStep(3);

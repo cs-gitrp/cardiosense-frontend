@@ -218,25 +218,40 @@ export const clearToken = () => {
 
 // ── Auth API ─────────────────────────────────────────────────────
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export async function register(email: string, password: string, full_name?: string) {
-  await new Promise(resolve => setTimeout(resolve, 800)); // Simulate networking
-  const token = "mock_auth_token_" + Math.random().toString(36).substr(2, 9);
-  setToken(token);
-  const user = { id: "doc_" + Date.now(), email, full_name: full_name || "Doctor" };
-  localStorage.setItem("cs_user", JSON.stringify(user));
-  return { access_token: token };
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password, full_name }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Registration failed");
+  }
+  const data = await res.json();
+  setToken(data.access_token);
+  return data;
 }
 
 export async function login(email: string, password: string) {
-  await new Promise(resolve => setTimeout(resolve, 800)); // Simulate networking
-  if (password.length < 4) throw new Error("Password must be at least 4 characters.");
-  const token = "mock_auth_token_123";
-  setToken(token);
-  const name = email.split("@")[0];
-  const formattedName = name.charAt(0).toUpperCase() + name.slice(1).replace(".", " ");
-  const user = { id: "doc_123", email, full_name: "Dr. " + formattedName };
-  localStorage.setItem("cs_user", JSON.stringify(user));
-  return { access_token: token };
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Incorrect email or password.");
+  }
+  const data = await res.json();
+  setToken(data.access_token);
+  return data;
 }
 
 export async function getMe() {
@@ -244,8 +259,19 @@ export async function getMe() {
   initializeStorage();
   const token = getToken();
   if (!token) throw new Error("Not authenticated");
-  const userStr = localStorage.getItem("cs_user");
-  return userStr ? JSON.parse(userStr) : MOCK_USER;
+  
+  const res = await fetch(`${API_URL}/auth/me`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch user details");
+  }
+  const user = await res.json();
+  localStorage.setItem("cs_user", JSON.stringify(user));
+  return user;
 }
 
 // ── Assessment API ───────────────────────────────────────────────
@@ -363,53 +389,43 @@ export async function createAssessment(payload: AssessRequest): Promise<AssessRe
 }
 
 export async function getAssessmentHistory(limit = 20, offset = 0): Promise<AssessmentHistoryItem[]> {
-  await new Promise(resolve => setTimeout(resolve, 400));
-  initializeStorage();
-  
-  const history = localStorage.getItem("cs_assessments");
-  if (!history) return [];
-  
-  const list: AssessResponse[] = JSON.parse(history);
-  
-  // Format to summary items
-  const summary: AssessmentHistoryItem[] = list.map(item => ({
-    assessment_id: item.assessment_id,
-    prediction: item.prediction,
-    fused_probability: item.fused_probability,
-    severity: item.severity,
-    created_at: item.created_at
-  }));
-  
-  return summary.slice(offset, offset + limit);
+  const token = getToken();
+  const res = await fetch(`${API_URL}/assess/history?limit=${limit}&offset=${offset}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token || ""}`,
+    },
+  });
+  if (!res.ok) {
+    return [];
+  }
+  return res.json();
 }
 
 export async function getAssessment(id: string): Promise<AssessResponse> {
-  await new Promise(resolve => setTimeout(resolve, 400));
-  initializeStorage();
-  
-  const history = localStorage.getItem("cs_assessments");
-  if (!history) throw new Error("Assessment not found");
-  
-  const list: AssessResponse[] = JSON.parse(history);
-  const found = list.find(item => item.assessment_id === id);
-  if (!found) throw new Error("Assessment not found");
-  
-  return found;
+  const token = getToken();
+  const res = await fetch(`${API_URL}/assess/${id}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token || ""}`,
+    },
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Assessment not found");
+  }
+  return res.json();
 }
 
 export async function deleteAssessment(id: string): Promise<boolean> {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  initializeStorage();
-  
-  const history = localStorage.getItem("cs_assessments");
-  if (!history) return false;
-  
-  let list: AssessResponse[] = JSON.parse(history);
-  const initialLength = list.length;
-  list = list.filter(item => item.assessment_id !== id);
-  localStorage.setItem("cs_assessments", JSON.stringify(list));
-  
-  return list.length < initialLength;
+  const token = getToken();
+  const res = await fetch(`${API_URL}/assess/${id}`, {
+    method: "DELETE",
+    headers: {
+      "Authorization": `Bearer ${token || ""}`,
+    },
+  });
+  return res.ok;
 }
 
 // ── Insights Metrics API ─────────────────────────────────────────

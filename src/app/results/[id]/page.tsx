@@ -339,7 +339,7 @@ export default function ResultsPage() {
             <h4 className="text-xs font-bold font-mono uppercase tracking-wider">Clinical Diagnosis Summary (Audited)</h4>
           </div>
           <p className="text-xs text-text-muted leading-relaxed">
-            The patient presented with CP score {result.clinical.cp} and ST depression induces {result.clinical.oldpeak}mm. Bayesian Platt calibration of the fused branches outputs a probability of {Math.round(result.fused_probability * 100)}% suggesting {result.prediction === "Disease" ? "significant coronary artery disease (CAD) indicators" : "low atherosclerotic risk"}. The primary attribution branch was computed as {result.severity_source || "Clinical"}. Recommended angiographic review and ECG trace surveillance.
+            The patient presented with CP score {result?.clinical?.cp ?? 'N/A'} and ST depression induces {result?.clinical?.oldpeak ?? 'N/A'}mm. Bayesian Platt calibration of the fused branches outputs a probability of {Math.round(result.fused_probability * 100)}% suggesting {result.prediction === "Disease" ? "significant coronary artery disease (CAD) indicators" : "low atherosclerotic risk"}. The primary attribution branch was computed as {result.severity_source || "Clinical"}. Recommended angiographic review and ECG trace surveillance.
           </p>
         </div>
 
