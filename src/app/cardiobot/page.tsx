@@ -197,7 +197,7 @@ export default function CardioBotPage() {
         </div>
 
         {/* Message board */}
-        <div className="flex-grow overflow-y-auto space-y-4 pr-1 text-xs mb-4">
+        <div className="flex-grow h-0 min-h-[45vh] overflow-y-auto space-y-4 pr-1 text-xs mb-4">
           {messages.map(msg => (
             <div key={msg.id} className={`flex gap-3 max-w-[85%] ${msg.sender === "user" ? "ml-auto flex-row-reverse" : ""}`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border ${
