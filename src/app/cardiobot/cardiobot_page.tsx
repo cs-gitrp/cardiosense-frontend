@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getAssessmentHistory, getAssessment, AssessmentHistoryItem, AssessResponse, sendChatMessage } from "@/lib/api";
+import { getAssessmentHistory, getAssessment, sendChatMessage, AssessmentHistoryItem, AssessResponse, ChatMessagePayload } from "@/lib/api";
 import { 
   MessageSquare, Send, Sparkles, AlertCircle, FileText, 
   HelpCircle, ChevronRight, User, Heart, Activity, Loader2
@@ -61,84 +61,61 @@ export default function CardioBotPage() {
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    const timestamp = new Date();
+    // Add user message immediately
     const userMsg: ChatMessage = {
-      id: `${timestamp.getTime()}-user`,
+      id: String(Date.now()),
       sender: "user",
       text,
-      timestamp,
+      timestamp: new Date()
     };
     setMessages(prev => [...prev, userMsg]);
     setInputText("");
     setBotTyping(true);
 
-    const botMsgId = `${Date.now()}-bot`;
-    const payloadMessages = [
-      ...messages.map(m => ({
-        role: (m.sender === "user" ? "user" : "assistant") as "user" | "assistant",
+    // Build message history for context (last 12 turns)
+    const allMessages = [...messages, userMsg];
+    const apiMessages: ChatMessagePayload[] = allMessages
+      .filter(m => m.sender === "user" || m.sender === "bot")
+      .slice(-12)
+      .map(m => ({
+        role: m.sender === "user" ? "user" : "assistant",
         content: m.text
-      })),
-      { role: "user" as const, content: text }
-    ];
+      }));
 
-    let currentText = "";
-    let isFirstChunk = true;
+    // Create a placeholder bot message we'll stream into
+    const botMsgId = String(Date.now() + 1);
+    setMessages(prev => [...prev, {
+      id: botMsgId,
+      sender: "bot" as const,
+      text: "",
+      timestamp: new Date()
+    }]);
+    setBotTyping(false);
 
-    try {
-      await sendChatMessage(
-        {
-          messages: payloadMessages,
-          assessment_id: activePatient?.assessment_id || null,
-        },
-        (chunk) => {
-          if (isFirstChunk) {
-            setBotTyping(false);
-            setMessages(prev => [
-              ...prev,
-              {
-                id: botMsgId,
-                sender: "bot",
-                text: chunk,
-                timestamp: new Date()
-              }
-            ]);
-            currentText = chunk;
-            isFirstChunk = false;
-          } else {
-            currentText += chunk;
-            setMessages(prev => prev.map(m => m.id === botMsgId ? { ...m, text: currentText } : m));
-          }
-        },
-        () => {
-          setBotTyping(false);
-        },
-        (err) => {
-          setBotTyping(false);
-          const errorMsgId = `${Date.now()}-error`;
-          setMessages(prev => [
-            ...prev,
-            {
-              id: errorMsgId,
-              sender: "bot",
-              text: `Error: ${err}`,
-              timestamp: new Date()
-            }
-          ]);
-        }
-      );
-    } catch (e) {
-      setBotTyping(false);
-      const errorMsgId = `${Date.now()}-error`;
-      setMessages(prev => [
-        ...prev,
-        {
-          id: errorMsgId,
-          sender: "bot",
-          text: "Failed to communicate with CardioBot.",
-          timestamp: new Date()
-        }
-      ]);
-    }
+    // Stream from real backend
+    await sendChatMessage(
+      {
+        messages: apiMessages,
+        assessment_id: activePatient?.assessment_id || null,
+      },
+      // onChunk — append each streamed token to the bot message
+      (chunk: string) => {
+        setMessages(prev => prev.map(m =>
+          m.id === botMsgId ? { ...m, text: m.text + chunk } : m
+        ));
+      },
+      // onDone
+      () => { setBotTyping(false); },
+      // onError
+      (err: string) => {
+        setMessages(prev => prev.map(m =>
+          m.id === botMsgId
+            ? { ...m, text: `⚠️ CardioBot error: ${err}. Check that the backend is running and GROQ_API_KEY is set.` }
+            : m
+        ));
+        setBotTyping(false);
+      }
+    );
   };
 
   return (
