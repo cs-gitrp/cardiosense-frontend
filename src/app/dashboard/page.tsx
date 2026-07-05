@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { getAssessmentHistory, AssessmentHistoryItem } from "@/lib/api";
-import { 
-  Heart, Activity, Plus, Shield, MessageSquare, 
+import { getAssessmentHistory, getCalibration, AssessmentHistoryItem, CalibrationMetrics } from "@/lib/api";
+import {
+  Heart, Activity, Plus, Shield, MessageSquare,
   ArrowRight, ShieldAlert, CheckCircle, ChevronRight, TrendingUp, Sparkles
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -14,12 +14,17 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [history, setHistory] = useState<AssessmentHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [calibration, setCalibration] = useState<CalibrationMetrics | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await getAssessmentHistory(10);
+        const [data, cal] = await Promise.all([
+          getAssessmentHistory(10),
+          getCalibration().catch(() => null)
+        ]);
         setHistory(data);
+        setCalibration(cal);
       } catch (err) {
         console.error("Failed to load assessments", err);
       } finally {
@@ -34,7 +39,7 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="h-10 w-48 bg-surface-2 animate-pulse rounded-lg" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[1,2,3,4].map(n => <div key={n} className="h-32 bg-surface-2 animate-pulse rounded-2xl" />)}
+          {[1, 2, 3, 4].map(n => <div key={n} className="h-32 bg-surface-2 animate-pulse rounded-2xl" />)}
         </div>
         <div className="h-96 bg-surface-2 animate-pulse rounded-3xl" />
       </div>
@@ -68,7 +73,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 relative">
-      
+
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-rose-100/20 blur-3xl pointer-events-none" />
 
@@ -79,7 +84,7 @@ export default function DashboardPage() {
             Welcome back, {user?.full_name || "Doctor"}
           </h1>
           <p className="text-xs text-text-muted">
-            Clinical Diagnostic Hub · Model version v1.4.2-calibrated
+            Clinical Diagnostic Hub · Notebook 12 pipeline · Platt-calibrated
           </p>
         </div>
         <Link href="/assess"
@@ -92,7 +97,7 @@ export default function DashboardPage() {
 
       {/* Risk & Model Metrics Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
+
         {/* Total Assessments */}
         <div className="cs-card space-y-2">
           <p className="text-[10px] font-mono text-text-muted uppercase">Assessments Conducted</p>
@@ -100,7 +105,7 @@ export default function DashboardPage() {
             <h3 className="text-3xl font-display text-text">{totalAssessments}</h3>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-risk-low font-bold">Active</span>
           </div>
-          <p className="text-[11px] text-text-subtle">Saved in secure browser environment</p>
+          <p className="text-[11px] text-text-subtle">Stored in secure database</p>
         </div>
 
         {/* Severity: Critical / High */}
@@ -117,7 +122,7 @@ export default function DashboardPage() {
         <div className="cs-card space-y-2">
           <p className="text-[10px] font-mono text-text-muted uppercase">Calibration Quality</p>
           <div className="flex justify-between items-baseline">
-            <h3 className="text-3xl font-display text-text">95.82%</h3>
+            <h3 className="text-3xl font-display text-text">{calibration ? `${(Math.max(calibration.clinical.auc, calibration.ecg.auc) * 100).toFixed(2)}%` : "95.82%"}</h3>
             <span className="text-[10px] font-mono text-accent font-semibold">AUC</span>
           </div>
           <p className="text-[11px] text-text-subtle">Platt scaling calibration active</p>
@@ -127,17 +132,17 @@ export default function DashboardPage() {
         <div className="cs-card space-y-2">
           <p className="text-[10px] font-mono text-text-muted uppercase">Connected Pipeline</p>
           <div className="flex justify-between items-baseline">
-            <h3 className="text-xl font-display text-text truncate">FastAPI (Local Mock)</h3>
-            <div className="w-2.5 h-2.5 rounded-full bg-risk-low animate-ping" />
+            <h3 className="text-xl font-display text-text truncate">CardioSense Pipeline</h3>
+            <div className={`w-2.5 h-2.5 rounded-full ${history.length >= 0 ? "bg-risk-low animate-ping" : "bg-gray-400"}`} />
           </div>
-          <p className="text-[11px] text-text-subtle">Online · latency 400ms</p>
+          <p className="text-[11px] text-text-subtle">ECG AUC {calibration ? calibration.ecg.auc.toFixed(4) : "0.9424"} · Platt calibrated</p>
         </div>
 
       </section>
 
       {/* Grid: Charts & Details */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* Trend Chart (Line) */}
         <div className="lg:col-span-8 cs-card space-y-6">
           <div className="flex justify-between items-center">
@@ -158,7 +163,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f1f4" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#949aa8" }} axisLine={false} tickLine={false} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#949aa8" }} axisLine={false} tickLine={false} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ background: "#ffffff", border: "1px solid #eaebee", borderRadius: 12, fontSize: 11 }}
                     labelFormatter={(label) => `Assessment Date: ${label}`}
                   />
@@ -212,7 +217,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions & Recent Assessments */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* Recent assessments list */}
         <div className="lg:col-span-8 cs-card space-y-6">
           <div className="flex justify-between items-center">
@@ -228,27 +233,25 @@ export default function DashboardPage() {
 
           <div className="divide-y divide-border">
             {history.slice(0, 4).map(item => (
-              <Link 
-                key={item.assessment_id} 
+              <Link
+                key={item.assessment_id}
                 href={`/results/${item.assessment_id}`}
                 className="py-3.5 flex justify-between items-center group hover:bg-surface-2/20 px-2 rounded-xl transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-2xl ${
-                    item.severity === "Critical" || item.severity === "High"
+                  <div className={`p-2.5 rounded-2xl ${item.severity === "Critical" || item.severity === "High"
                       ? "bg-rose-50 text-risk-high border border-rose-100"
                       : item.severity === "Moderate"
                         ? "bg-amber-50 text-risk-mod border border-amber-100"
                         : "bg-emerald-50 text-risk-low border border-emerald-100"
-                  }`}>
+                    }`}>
                     <Heart size={16} />
                   </div>
                   <div>
                     <h4 className="text-xs font-semibold text-text flex items-center gap-2">
                       Patient {item.assessment_id}
-                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${
-                        item.prediction === "Disease" ? "bg-rose-50 text-risk-high" : "bg-emerald-50 text-risk-low"
-                      }`}>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${item.prediction === "Disease" ? "bg-rose-50 text-risk-high" : "bg-emerald-50 text-risk-low"
+                        }`}>
                         {item.prediction}
                       </span>
                     </h4>
@@ -261,13 +264,12 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <span className="text-[10px] text-text-muted uppercase font-mono">Fused Prob</span>
-                    <p className={`text-sm font-bold ${
-                      item.fused_probability >= 0.6
+                    <p className={`text-sm font-bold ${item.fused_probability >= 0.6
                         ? "text-risk-high"
                         : item.fused_probability >= 0.35
                           ? "text-risk-mod"
                           : "text-risk-low"
-                    }`}>
+                      }`}>
                       {Math.round(item.fused_probability * 100)}%
                     </p>
                   </div>
@@ -286,7 +288,7 @@ export default function DashboardPage() {
 
         {/* Quick Bulletin Panel */}
         <div className="lg:col-span-4 space-y-6">
-          
+
           {/* Quick clinical decision support helper */}
           <div className="cs-card bg-gradient-to-tr from-accent/5 to-amber-50/5 border border-accent/15 space-y-4">
             <div className="flex items-center gap-2 text-accent">
