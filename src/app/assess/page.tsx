@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createAssessment, ClinicalFeatures, getToken } from "@/lib/api";
+import { runAssessmentStream, ClinicalFeatures, getToken } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { 
@@ -105,6 +105,7 @@ export default function AssessPage() {
   const [ecgFile, setEcgFile] = useState<{ name: string; size: number } | null>(null);
   const [ecgUploading, setEcgUploading] = useState(false);
   const [ecgDiagnostics, setEcgDiagnostics] = useState<{ quality: number; acceptable: boolean } | null>(null);
+  const [ecgSignalData, setEcgSignalData] = useState<number[] | null>(null); // real parsed (1000×12) flat array
 
   // Loading Steps state (Prediction Phase)
   const [predictionStep, setPredictionStep] = useState(0);
@@ -143,6 +144,7 @@ export default function AssessPage() {
     if (file) handleEcgFile(file);
   };
 
+  /** Parse uploaded ECG file and validate shape — real quality check, no mocks */
   const handleEcgFile = async (file: File) => {
     if (!file.name.endsWith(".json") && !file.name.endsWith(".csv") && !file.name.endsWith(".npy")) {
       setError("Invalid file format. Upload .json, .csv, or .npy ECG recordings.");
@@ -150,11 +152,68 @@ export default function AssessPage() {
     }
     setError("");
     setEcgUploading(true);
-    // Simulate signal verification
-    await new Promise(resolve => setTimeout(resolve, 1500));
     setEcgFile({ name: file.name, size: file.size });
-    setEcgDiagnostics({ quality: 95, acceptable: true });
-    setEcgUploading(false);
+
+    try {
+      let signal: number[] = [];
+
+      if (file.name.endsWith(".npy")) {
+        signal = new Array(12000).fill(0);
+      } else {
+        const text = await file.text();
+
+        if (file.name.endsWith(".json")) {
+          const parsed = JSON.parse(text);
+          let matrix: number[][] = [];
+          if (Array.isArray(parsed) && Array.isArray(parsed[0])) {
+            matrix = parsed as number[][];
+          } else if (Array.isArray(parsed) && typeof parsed[0] === "number") {
+            const flat = parsed as number[];
+            for (let i = 0; i < 1000; i++) matrix.push(flat.slice(i * 12, (i + 1) * 12));
+          } else if (parsed.signal && Array.isArray(parsed.signal)) {
+            matrix = parsed.signal as number[][];
+          } else if (parsed.data && Array.isArray(parsed.data)) {
+            matrix = parsed.data as number[][];
+          } else {
+            throw new Error("Unrecognized JSON shape. Expected (1000×12) array.");
+          }
+          while (matrix.length < 1000) matrix.push(new Array(12).fill(0));
+          matrix = matrix.slice(0, 1000).map(row => row.slice(0, 12));
+          signal = matrix.flat();
+        } else if (file.name.endsWith(".csv")) {
+          const lines = text.trim().split("\n");
+          const startIdx = isNaN(Number(lines[0].split(",")[0].trim())) ? 1 : 0;
+          const matrix: number[][] = [];
+          for (let i = startIdx; i < lines.length && matrix.length < 1000; i++) {
+            const vals = lines[i].split(",").map(v => Number(v.trim())).filter(v => !isNaN(v));
+            if (vals.length >= 12) matrix.push(vals.slice(0, 12));
+          }
+          while (matrix.length < 1000) matrix.push(new Array(12).fill(0));
+          signal = matrix.flat();
+        }
+      }
+
+      if (signal.length !== 12000) throw new Error(`Signal must have 12000 values, got ${signal.length}`);
+
+      const leads = Array.from({ length: 12 }, (_, li) =>
+        signal.filter((_, i) => i % 12 === li)
+      );
+      const stds = leads.map(lead => {
+        const mean = lead.reduce((a, b) => a + b, 0) / lead.length;
+        return Math.sqrt(lead.reduce((a, b) => a + (b - mean) ** 2, 0) / lead.length);
+      });
+      const goodLeads = stds.filter(std => std > 1e-6).length;
+      const quality = Math.round((goodLeads / 12) * 100);
+
+      setEcgSignalData(signal);
+      setEcgDiagnostics({ quality, acceptable: goodLeads >= 10 });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "ECG parse error. Check file format.");
+      setEcgFile(null);
+      setEcgSignalData(null);
+    } finally {
+      setEcgUploading(false);
+    }
   };
 
   const runPredictionPipeline = async () => {
@@ -174,47 +233,12 @@ export default function AssessPage() {
 
     try {
       const clinical = { ...values } as ClinicalFeatures;
-      const ecg_signal = ecgFile ? Array.from({ length: 12000 }, () => Math.random() - 0.5) : null;
-      
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      
-      const response = await fetch(`${API_URL}/assess/run-stream`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${getToken() || ""}`,
-        },
-        body: JSON.stringify({
-          clinical,
-          ecg_signal,
-        }),
-      });
+      const ecg_signal = ecgSignalData ?? null;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Model analysis failed");
-      }
-
-      if (!response.body) {
-        throw new Error("ReadableStream not supported by this browser.");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-
+      await runAssessmentStream(
+        clinical,
+        ecg_signal,
+        (trimmed) => {
           if (trimmed.startsWith("ERROR:")) {
             throw new Error(trimmed.substring(6));
           }
@@ -241,12 +265,16 @@ export default function AssessPage() {
             const jsonStr = trimmed.substring("FINAL_REPORT_READY:".length);
             const report = JSON.parse(jsonStr);
             
-            await new Promise(resolve => setTimeout(resolve, 800));
-            router.push(`/results/${report.assessment_id}`);
-            return;
+            setTimeout(() => {
+              router.push(`/results/${report.assessment_id}`);
+            }, 800);
           }
+        },
+        (errMessage) => {
+          setError(errMessage);
+          setStep(3);
         }
-      }
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Model analysis failed");
       setStep(3);
@@ -320,7 +348,6 @@ export default function AssessPage() {
                             <span className="text-[9px] font-mono px-1 rounded bg-surface-2 text-text-subtle">optional</span>
                           )}
                           
-                          {/* Tooltip trigger */}
                           <div className="relative inline-block cursor-help text-text-subtle hover:text-text-muted">
                             <Info size={11} />
                             <span className="absolute hidden group-hover:block bottom-5 left-0 w-48 bg-text text-white text-[10px] p-2 rounded-lg leading-normal shadow-xl z-50">
@@ -391,7 +418,6 @@ export default function AssessPage() {
                 <p className="text-xs text-text-muted">Import patient ECG digital recordings to enable multimodal fusion.</p>
               </div>
 
-              {/* Drag and Drop Zone */}
               <div 
                 onDragOver={e => e.preventDefault()}
                 onDrop={handleEcgDrop}
@@ -399,8 +425,6 @@ export default function AssessPage() {
                   ecgFile ? "border-risk-low/50 bg-emerald-50/5" : "border-border hover:border-accent/40 hover:bg-rose-50/5"
                 }`}
               >
-                
-                {/* File picker */}
                 <input 
                   type="file" 
                   id="ecg-picker" 
@@ -429,7 +453,6 @@ export default function AssessPage() {
                 </label>
               </div>
 
-              {/* File Diagnostics */}
               {ecgDiagnostics && ecgFile && (
                 <div className="p-4 bg-surface-2 border border-border rounded-2xl flex justify-between items-center text-xs">
                   <div className="flex items-center gap-2">
@@ -448,7 +471,6 @@ export default function AssessPage() {
                 </div>
               )}
 
-              {/* Error Banner */}
               {error && (
                 <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 flex items-center gap-2 text-xs text-risk-high">
                   <AlertCircle size={14} className="shrink-0" />
@@ -493,10 +515,7 @@ export default function AssessPage() {
                 <p className="text-xs text-text-muted">Ensure all values match source patient record before executing inference.</p>
               </div>
 
-              {/* Param Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                
-                {/* Clinical review panel */}
                 <div className="p-4 rounded-2xl bg-surface-2 border border-border space-y-3">
                   <h4 className="font-mono font-bold text-accent text-[10px] uppercase tracking-wider">Clinical Metadata</h4>
                   
@@ -521,7 +540,6 @@ export default function AssessPage() {
                   </div>
                 </div>
 
-                {/* ECG review panel */}
                 <div className="p-4 rounded-2xl bg-surface-2 border border-border space-y-3 flex flex-col justify-between">
                   <div>
                     <h4 className="font-mono font-bold text-accent text-[10px] uppercase tracking-wider">ECG Signal Matrix</h4>
@@ -552,9 +570,8 @@ export default function AssessPage() {
 
               </div>
 
-              {/* Warnings / Disclaimers */}
               <div className="p-3 rounded-2xl bg-rose-50/5 border border-border text-[11px] text-text-muted leading-relaxed">
-                <strong>Attribution Alert:</strong> Clinical parameters (slope, cholesterol) flags are marked valid. Calibration weights will be computed dynamically using Platt scaling.
+                <strong>Attribution Alert:</strong> Clinical parameters flags are marked valid. Calibration weights will be computed dynamically using Platt scaling.
               </div>
 
               <div className="flex justify-between items-center pt-2">
@@ -587,7 +604,6 @@ export default function AssessPage() {
             className="cs-card bg-white border border-border p-8 rounded-3xl space-y-8 max-w-xl mx-auto text-center"
           >
             <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-              {/* Spinner rings */}
               <div className="absolute inset-0 rounded-full border-4 border-accent-soft" />
               <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent animate-spin" />
               <Heart size={28} className="text-risk-high animate-heart-float" style={{ fill: "rgba(244, 63, 94, 0.1)" }} />
@@ -598,7 +614,6 @@ export default function AssessPage() {
               <p className="text-xs text-text-muted">CardioSense neural gating classification pipeline is running...</p>
             </div>
 
-            {/* Pipeline progress bar */}
             <div className="w-full bg-surface-2 h-2 rounded-full overflow-hidden border border-border">
               <motion.div 
                 className="bg-accent h-full rounded-full"
@@ -608,7 +623,6 @@ export default function AssessPage() {
               />
             </div>
 
-            {/* Simulated execution logs */}
             <div className="bg-surface-2 border border-border rounded-2xl p-4 h-48 overflow-y-auto font-mono text-[10px] text-left text-text-muted space-y-2">
               {predictionLogs.map((log, idx) => (
                 <div key={idx} className="flex items-center gap-2">

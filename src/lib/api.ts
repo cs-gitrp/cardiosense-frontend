@@ -1,7 +1,6 @@
 /**
- * CardioSense AI - Pure Frontend Mock API client
- * Simulates all API operations via localStorage to allow
- * 100% functional client-side demo (History, Assessment, Auth, etc.).
+ * CardioSense AI - Production API Client
+ * Manages all secure backend communication layers and streaming connections.
  */
 
 // ── Types ────────────────────────────────────────────────────────
@@ -213,7 +212,6 @@ export async function getBootstrapCI(): Promise<{ n_bootstrap: number; results: 
   return insightsFetch("/insights/bootstrap-ci");
 }
 
-
 // ── CardioBot Chat API ────────────────────────────────────────────
 
 export interface ChatMessagePayload {
@@ -226,12 +224,6 @@ export interface ChatRequest {
   assessment_id?: string | null;
 }
 
-/**
- * Streams CardioBot response from POST /chat.
- * Calls onChunk(text) for each streamed token.
- * Calls onDone() when stream completes.
- * Returns void — caller manages message state.
- */
 export async function sendChatMessage(
   request: ChatRequest,
   onChunk: (text: string) => void,
@@ -290,4 +282,61 @@ export async function sendChatMessage(
     }
   }
   onDone();
+}
+
+// ── Pipeline Stream Central Orchestration ─────────────────────────
+
+export async function runAssessmentStream(
+  clinical: ClinicalFeatures,
+  ecg_signal: number[] | null,
+  onLine: (line: string) => void,
+  onError: (err: string) => void
+): Promise<void> {
+  const token = getToken();
+  let res: Response;
+
+  try {
+    res = await fetch(`${API_URL}/assess/run-stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token || ""}`,
+      },
+      body: JSON.stringify({ clinical, ecg_signal }),
+    });
+  } catch {
+    onError("Network error — Verify that your Uvicorn backend is running.");
+    return;
+  }
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    onError(errData.detail || `Model analysis failed: ${res.status}`);
+    return;
+  }
+
+  if (!res.body) {
+    onError("ReadableStream not supported by this browser configuration.");
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        onLine(trimmed);
+      }
+    }
+  }
 }
