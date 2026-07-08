@@ -3,15 +3,13 @@ import { useEffect, useState } from "react";
 import { getCalibration, getBootstrapCI, getModelComparison, CalibrationMetrics, BootstrapCI } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 async function fetchInsights<T>(path: string): Promise<T> {
   const r = await fetch(`${API}${path}`);
   if (!r.ok) throw new Error("insights fetch failed");
   return r.json();
 }
-
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, ErrorBar, LineChart, Line, CartesianGrid, Legend } from "recharts";
-import { BarChart3, TrendingUp, Target, Zap, FileText, ChevronRight } from "lucide-react";
+import { BarChart3, Target, Zap, FileText, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 const MetricCard = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
@@ -32,24 +30,27 @@ export default function InsightsPage() {
   const [confMatrix, setConfMatrix] = useState<{tn_pct:number;fp_pct:number;fn_pct:number;tp_pct:number;sensitivity:number;specificity:number;precision:number;f1:number;threshold:number;n_test:number} | null>(null);
 
   useEffect(() => {
-    getCalibration().then(setCalibration).catch(() => {});
-    getBootstrapCI().then(setCI).catch(() => {});
-    getModelComparison().then(setComparison).catch(() => {});
+    getCalibration().then(setCalibration);
+    getBootstrapCI().then(setCI);
+    getModelComparison().then(setComparison);
     fetchInsights<object[]>("/insights/roc-data").then(setRocData).catch(() => {});
     fetchInsights<object[]>("/insights/calibration-curve").then(setCalData).catch(() => {});
     fetchInsights<any>("/insights/confusion-matrix").then(setConfMatrix).catch(() => {});
   }, []);
 
-  const ciChartData = ci?.results.filter(r => r.metric === "AUC").map(r => ({
-    name: r.branch,
-    mean: +(r.mean * 100).toFixed(1),
-    error: +((r.ci_upper - r.ci_lower) * 50).toFixed(1),
-    lower: +(r.ci_lower * 100).toFixed(1),
-    upper: +(r.ci_upper * 100).toFixed(1)
-  })) || [];
+  const ciChartData = ci?.results
+    .filter(r => r.metric === "AUC")
+    .map(r => ({
+      name: r.branch === "Clinical" ? "Clinical Branch" : r.branch === "ECG" ? "ECG Branch" : r.branch,
+      mean: +(r.mean * 100).toFixed(1),
+      error: +((r.ci_upper - r.ci_lower) * 50).toFixed(1), 
+      lower: +(r.ci_lower * 100).toFixed(1),
+      upper: +(r.ci_upper * 100).toFixed(1)
+    })) || [];
 
   return (
     <div className="space-y-8 relative">
+      
       <div className="absolute top-0 right-0 w-96 h-96 bg-rose-50/5 blur-3xl pointer-events-none" />
 
       <div className="space-y-1">
@@ -122,6 +123,7 @@ export default function InsightsPage() {
         <div className="w-full min-h-[300px]">
           {activeTab === "curves" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
               <div className="space-y-4">
                 <div>
                   <h4 className="text-xs font-bold font-mono text-accent uppercase tracking-wider">Receiver Operating Characteristic (ROC)</h4>
@@ -163,11 +165,13 @@ export default function InsightsPage() {
                   </ResponsiveContainer>
                 </div>
               </div>
+
             </div>
           )}
 
           {activeTab === "matrix" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center max-w-3xl mx-auto">
+              
               <div className="space-y-4 text-center">
                 <h4 className="text-xs font-bold font-mono text-accent uppercase tracking-wider text-left">Confusion Matrix</h4>
                 <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
@@ -175,14 +179,17 @@ export default function InsightsPage() {
                     <span className="text-2xl font-mono font-bold text-emerald-600">{confMatrix ? `${confMatrix.tn_pct.toFixed(1)}%` : "78.6%"}</span>
                     <span className="text-[9px] uppercase tracking-wider text-text-muted mt-1 font-semibold">True Negative (TN)</span>
                   </div>
+                  
                   <div className="p-6 bg-rose-50/20 border border-rose-100/40 rounded-2xl flex flex-col justify-center items-center shadow-sm">
                     <span className="text-2xl font-mono font-bold text-text-muted">{confMatrix ? `${confMatrix.fp_pct.toFixed(1)}%` : "21.4%"}</span>
                     <span className="text-[9px] uppercase tracking-wider text-text-subtle mt-1 font-semibold">False Positive (FP)</span>
                   </div>
+                  
                   <div className="p-6 bg-rose-50/20 border border-rose-100/40 rounded-2xl flex flex-col justify-center items-center shadow-sm">
                     <span className="text-2xl font-mono font-bold text-text-muted">{confMatrix ? `${confMatrix.fn_pct.toFixed(1)}%` : "9.8%"}</span>
                     <span className="text-[9px] uppercase tracking-wider text-text-subtle mt-1 font-semibold">False Negative (FN)</span>
                   </div>
+
                   <div className="p-6 bg-emerald-50/40 border border-emerald-100 rounded-2xl flex flex-col justify-center items-center shadow-sm">
                     <span className="text-2xl font-mono font-bold text-emerald-600">{confMatrix ? `${confMatrix.tp_pct.toFixed(1)}%` : "90.2%"}</span>
                     <span className="text-[9px] uppercase tracking-wider text-text-muted mt-1 font-semibold">True Positive (TP)</span>
@@ -206,6 +213,7 @@ export default function InsightsPage() {
                   </div>
                 </div>
               </div>
+
             </div>
           )}
 
@@ -225,7 +233,7 @@ export default function InsightsPage() {
                     <Tooltip />
                     <Bar dataKey="mean" radius={[6, 6, 0, 0]}>
                       {ciChartData.map((d, i) => (
-                        <Cell key={i} fill={d.name === "Fused Pipeline" ? "#e11d48" : d.name === "ECG" ? "#4f46e5" : "#10b981"} />
+                        <Cell key={i} fill={d.name === "Fused Pipeline" ? "#e11d48" : (d.name === "ECG Branch" || d.name === "ECG") ? "#4f46e5" : "#10b981"} />
                       ))}
                       <ErrorBar dataKey="error" width={4} strokeWidth={2} stroke="#606470" />
                     </Bar>
@@ -235,9 +243,11 @@ export default function InsightsPage() {
             </div>
           )}
         </div>
+
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
         <div className="lg:col-span-7 cs-card space-y-4">
           <div className="flex items-center gap-2">
             <Zap size={15} className="text-accent" />
@@ -258,8 +268,12 @@ export default function InsightsPage() {
                 {comparison?.results.map((r, i) => (
                   <tr key={i} className="hover:bg-surface-2/10 transition-colors">
                     <td className="py-3 px-3 font-semibold text-text">{r.model}</td>
-                    <td className="py-3 px-3 text-right font-mono font-semibold text-emerald-600">{r.delta_accuracy >= 0 ? `+${r.delta_accuracy}%` : `${r.delta_accuracy}%`}</td>
-                    <td className="py-3 px-3 text-right font-mono text-text-muted">{r.delta_f1 >= 0 ? `+${r.delta_f1}%` : `${r.delta_f1}%`}</td>
+                    <td className={`py-3 px-3 text-right font-mono font-semibold ${r.delta_accuracy >= 0 ? "text-emerald-600" : "text-risk-high"}`}>
+                      {r.delta_accuracy >= 0 ? `+${r.delta_accuracy.toFixed(2)}%` : `${r.delta_accuracy.toFixed(2)}%`}
+                    </td>
+                    <td className={`py-3 px-3 text-right font-mono font-semibold ${r.delta_f1 >= 0 ? "text-emerald-600" : "text-risk-high"}`}>
+                      {r.delta_f1 >= 0 ? `+${r.delta_f1.toFixed(2)}%` : `${r.delta_f1.toFixed(2)}%`}
+                    </td>
                     <td className="py-3 px-3 text-right font-mono text-text-muted">{r.verdict}</td>
                   </tr>
                 ))}
@@ -268,6 +282,7 @@ export default function InsightsPage() {
           </div>
         </div>
 
+        {/* Notebook links references - Now streaming files directly from backend folder structure */}
         <div className="lg:col-span-5 cs-card space-y-4">
           <h3 className="text-sm font-semibold text-text">Research Codebase Links</h3>
           <p className="text-xs text-text-muted leading-relaxed">
@@ -282,7 +297,8 @@ export default function InsightsPage() {
             ].map(nb => (
               <a 
                 key={nb.num}
-                href={`#notebook-${nb.num}`}
+                href={`${API}/insights/notebook/${nb.num}`}
+                download
                 className="p-3 bg-surface-2 border border-border rounded-xl flex justify-between items-center text-xs hover:bg-surface-3 transition-colors text-text group"
               >
                 <div className="flex items-center gap-2">
@@ -297,6 +313,7 @@ export default function InsightsPage() {
             ))}
           </div>
         </div>
+
       </section>
     </div>
   );
