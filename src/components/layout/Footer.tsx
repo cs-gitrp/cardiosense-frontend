@@ -47,17 +47,17 @@ export default function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-text">Research</h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#notebook" className="text-text-muted hover:text-accent transition-colors flex items-center gap-1.5">
-                  <FileText size={12} /> Training Notebook
+                <a href="https://github.com/cs-gitrp/cardiosense-backend/tree/main/research" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent transition-colors flex items-center gap-1.5">
+                  <FileText size={12} /> Training Notebooks
                 </a>
               </li>
               <li>
-                <a href="#github" className="text-text-muted hover:text-accent transition-colors flex items-center gap-1.5">
+                <a href="https://github.com/cs-gitrp/cardiosense-backend" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent transition-colors flex items-center gap-1.5">
                   <Activity size={12} /> GitHub Repository
                 </a>
               </li>
               <li>
-                <a href="#methods" className="text-text-muted hover:text-accent transition-colors flex items-center gap-1.5">
+                <a href="https://github.com/cs-gitrp/cardiosense-backend/tree/main/research/notebooks/09-confidence-adaptive-fusion.ipynb" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent transition-colors flex items-center gap-1.5">
                   <Activity size={12} /> Calibration Protocol
                 </a>
               </li>

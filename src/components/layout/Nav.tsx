@@ -86,8 +86,10 @@ export default function Nav() {
             </div>
           )}
 
-          {/* Right Action Stack: Avatar Node Dropdown */}
+          {/* Right Action Stack */}
           <div className="flex items-center gap-3">
+            
+            {/* Authenticated User Menu Dropdown */}
             {user && (
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button 
@@ -95,7 +97,7 @@ export default function Nav() {
                   className="flex items-center gap-1.5 focus:outline-none"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-400 to-coral-500 text-white font-semibold text-xs flex items-center justify-center border-2 border-white shadow-md">
-                    {user.full_name ? user.full_name.split(" ").pop()?.substring(0, 2).toUpperCase() : "MD"}
+                    {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : "MD"}
                   </div>
                 </button>
 
@@ -130,6 +132,15 @@ export default function Nav() {
               </div>
             )}
 
+            {/* Unauthenticated State: Restored Sign In Action Link (Fixed) */}
+            {!user && (
+              <Link href="/auth"
+                className="px-4 py-2 rounded-xl bg-accent text-white font-medium text-sm hover:bg-accent/90 shadow-sm transition-all duration-200"
+              >
+                Sign In
+              </Link>
+            )}
+
             {/* Mobile menu panel hamburger trigger node */}
             {user && (
               <button 
@@ -153,7 +164,7 @@ export default function Nav() {
             exit={{ height: 0, opacity: 0 }}
             className="lg:hidden bg-surface border-t border-border overflow-hidden"
           >
-            <div className="px-4 py-3 space-y-1幕">
+            <div className="px-4 py-3 space-y-1">
               {links.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname.startsWith(href);
                 return (

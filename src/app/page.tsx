@@ -16,7 +16,7 @@ export default function Home() {
   // Custom stats counters
   const [assessmentsCount, setAssessmentsCount] = useState(0);
   useEffect(() => {
-    const target = 18420;
+    const target = 920;
     const duration = 2000;
     const step = Math.ceil(target / (duration / 30));
     let current = 0;
@@ -107,7 +107,7 @@ export default function Home() {
             <span>·</span>
             <span>Clinical AUC: 0.9266</span>
             <span>·</span>
-            <span>ECE Calibration: 0.0212</span>
+            <span>ECE Calibration: 0.034</span>
           </motion.div>
         </div>
 
@@ -173,9 +173,9 @@ export default function Home() {
       {/* Statistics Section */}
       <section className="cs-card bg-surface-2/30 border border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 rounded-3xl p-8 relative z-10">
         {[
-          { label: "Total Assessments Run", value: assessmentsCount.toLocaleString() + "+" },
+          { label: "Clinical Records Evaluated", value: assessmentsCount.toLocaleString() + "+" },
           { label: "Clinical Parameters Analyzed", value: "11 Features" },
-          { label: "12-Lead ECG Attributions", value: "1000 Hz / Lead" },
+          { label: "12-Lead ECG Attributions", value: "1000 × 12 Matrix" },
           { label: "Fusion Accuracy (AUC)", value: "95.82%" }
         ].map((stat, i) => (
           <div key={i} className="space-y-1 text-center sm:text-left">
@@ -210,7 +210,7 @@ export default function Home() {
             {
               icon: Activity,
               title: "ECG Waveform Intelligence",
-              desc: "Deep convolutional neural networks analyze the 12-lead signal matrix to capture subtle arrhythmias, ST shifts, and conduction disturbances.",
+              desc: "Deep convolutional neural networks analyze the 12-lead signal matrix to capture cardiac morphology patterns, ST-segment shifts, and waveform amplitude variations.",
               badge: "1D CNN"
             },
             {
@@ -258,7 +258,7 @@ export default function Home() {
             {[
               { step: "01", label: "Patient Demographics & Vitals Entry", desc: "Clinician inputs standard diagnostic characteristics including exercise-induced chest pain." },
               { step: "02", label: "12-Lead ECG Signal Upload", desc: "Standard 10-second ECG signals in raw format are uploaded and checked for signal drift or noise." },
-              { step: "03", label: "Multi-branch Signal Processing", desc: "Dual pipelines run Random Forest on tabular features and a 1D ResNet model on the signal matrix." },
+              { step: "03", label: "Multi-branch Signal Processing", desc: "Dual pipelines run Random Forest on tabular features and a 1D CNN model on the signal matrix." },
               { step: "04", label: "Confidence-Adaptive Fusion Prediction", desc: "The gate network computes individual branch probabilities and outputs a fused risk assessment." }
             ].map((step, idx) => (
               <div key={idx} className="flex gap-4 items-start">
@@ -301,7 +301,7 @@ export default function Home() {
               
               <div className="p-3 bg-surface border border-border rounded-xl space-y-1 shadow-sm">
                 <span className="font-semibold text-text">ECG Branch</span>
-                <p className="text-[10px] text-text-muted">1D CNN / ResNet1D</p>
+                <p className="text-[10px] text-text-muted">1D CNN (3-block)</p>
                 <div className="w-full bg-surface-2 rounded-full h-1.5 mt-2">
                   <div className="bg-accent h-1.5 rounded-full" style={{ width: "80%" }} />
                 </div>
@@ -333,7 +333,7 @@ export default function Home() {
         
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <h2 className="font-display text-3xl text-text">
-            Endorsed by medical researchers
+            Grounded in clinical AI research
           </h2>
           <p className="text-sm text-text-muted leading-relaxed">
             CardioSense AI helps research clinicians validate machine learning techniques in cardiovascular diagnostic workflows.
@@ -343,14 +343,14 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {[
             {
-              quote: "The ability to audit clinical feature attributions through SHAP alongside 12-lead ECG lead attribution heatmaps provides the explainability that clinical research models have traditionally lacked.",
-              author: "Dr. Matthew Carter, MD",
-              role: "Director of Cardiology Research, Metro Heart Institute"
+              quote: "Many high-performance deep learning models remain 'black boxes,' limiting clinician trust; integrating XAI methods such as SHAP can partially mitigate this.",
+              author: "PMC Systematic Review",
+              role: "AI-Powered Clinical Decision Support Systems, 2024"
             },
             {
-              quote: "Our validation tests confirm that calibrated dynamic fusion outperforms isolated ECG analysis. Reducing false positive triggers while retaining high sensitivity is crucial for diagnostic screening pipelines.",
-              author: "Prof. Elena Rostova, PhD",
-              role: "Chair of Biomedical Engineering, State Science University"
+              quote: "The black box nature of AI models in cardiovascular imaging poses significant legal and ethical concerns — lack of transparency remains a critical barrier to clinical acceptance.",
+              author: "Springer Nature",
+              role: "Explainability in Cardiovascular AI, 2024"
             }
           ].map((t, idx) => (
             <div key={idx} className="cs-card bg-surface-2/10 border border-border p-6 rounded-2xl space-y-4 flex flex-col justify-between">

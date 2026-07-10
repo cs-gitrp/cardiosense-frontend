@@ -270,18 +270,18 @@ export default function AssessPage() {
 
   // Field validation status check (Priority 6)
   const isClinicalValid = 
-    values.age !== null && values.age !== "" &&
-    values.sex !== null &&
-    values.cp !== null &&
-    values.thalach !== null && values.thalach !== "" &&
-    values.oldpeak !== null && values.oldpeak !== "" &&
-    values.exang !== null &&
-    values.fbs !== null;
+    values.age !== null && values.age !== undefined &&
+    values.sex !== null && values.sex !== undefined &&
+    values.cp !== null && values.cp !== undefined &&
+    values.thalach !== null && values.thalach !== undefined &&
+    values.oldpeak !== null && values.oldpeak !== undefined &&
+    values.exang !== null && values.exang !== undefined &&
+    values.fbs !== null && values.fbs !== undefined;
 
   // Track optional fields missingness (Priority 5)
   const missingOptionalFields: string[] = [];
-  if (values.ca === null || values.ca === undefined || values.ca === "") missingOptionalFields.push("Fluoroscopy Vessels (ca)");
-  if (values.thal === null || values.thal === undefined || values.thal === "") missingOptionalFields.push("Thalassemia Code (thal)");
+  if (values.ca === null || values.ca === undefined) missingOptionalFields.push("Fluoroscopy Vessels (ca)");
+  if (values.thal === null || values.thal === undefined) missingOptionalFields.push("Thalassemia Code (thal)");
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 relative">

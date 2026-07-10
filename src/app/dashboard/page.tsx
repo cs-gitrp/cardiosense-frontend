@@ -318,7 +318,7 @@ export default function DashboardPage() {
               </Link>
               <Link href="/profile" className="p-3 rounded-2xl bg-surface-2 border border-border text-xs font-medium hover:bg-surface-3 transition-colors flex flex-col items-center gap-1.5 text-text">
                 <Shield size={16} className="text-amber-500" />
-                <span>API Status</span>
+                <span>Profile</span>
               </Link>
             </div>
           </div>
