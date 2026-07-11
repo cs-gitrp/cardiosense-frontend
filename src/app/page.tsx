@@ -160,8 +160,8 @@ export default function Home() {
                 <p className="font-semibold text-text">98 ms</p>
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-text-subtle">FUSION CONFIDENCE</span>
-                <p className="font-semibold text-risk-low">98.5%</p>
+                <span className="text-[10px] text-text-subtle">INFERENCE TIME</span>
+                <p className="font-semibold text-risk-low">43 ms</p>
               </div>
             </div>
 
