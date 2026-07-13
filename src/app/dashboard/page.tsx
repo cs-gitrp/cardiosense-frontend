@@ -161,11 +161,29 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f1f4" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#949aa8" }} axisLine={false} tickLine={false} />
+                  <XAxis
+                    dataKey="index"
+                    tickFormatter={(idx) => {
+                      const item = trendData.find(d => d.index === idx);
+                      return item ? item.date : "";
+                    }}
+                    tick={{ fontSize: 10, fill: "#949aa8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#949aa8" }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: "#ffffff", border: "1px solid #eaebee", borderRadius: 12, fontSize: 11 }}
-                    labelFormatter={(label) => `Assessment Date: ${label}`}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-white border border-[#eaebee] rounded-xl p-3 shadow-sm text-[11px] text-text">
+                            <p className="font-semibold mb-1">{`Assessment Date: ${payload[0].payload.date}`}</p>
+                            <p className="text-accent">probability : {Math.round(payload[0].value as number)}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   />
                   <Line type="monotone" dataKey="probability" stroke="#e11d48" strokeWidth={3} dot={{ fill: "#e11d48", strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
