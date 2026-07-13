@@ -120,7 +120,7 @@ export default function CardioBotPage() {
             {
               id: errorMsgId,
               sender: "bot",
-              text: `⚠️ CardioBot error: ${err}. Check that the backend is running and GROQ_API_KEY is set.`,
+              text: `⚠️ CardioBot error: ${err}. Please wait while the backend loads your context`,
               timestamp: new Date()
             }
           ]);
