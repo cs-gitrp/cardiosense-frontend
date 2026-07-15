@@ -6,8 +6,8 @@
 
 **Dual-branch cardiac risk assessment — ECG signal fusion meets clinical intelligence**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-cardiosense.vercel.app-0ea5e9?style=flat-square&logo=vercel)](https://cardiosense-ai.vercel.app)
-[![Backend](https://img.shields.io/badge/Backend-Render-46e3b7?style=flat-square&logo=render)](https://cardiosense-backend.onrender.com/docs)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-cardiosense.vercel.app-0ea5e9?style=flat-square&logo=vercel)](https://cardiosense-gamma.vercel.app/)
+[![Backend](https://img.shields.io/badge/Backend-Render-46e3b7?style=flat-square&logo=render)](https://cardiosense-backend-7j16.onrender.com/docs)
 [![License](https://img.shields.io/badge/License-MIT-6366f1?style=flat-square)](./LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
@@ -38,11 +38,11 @@ This is not a clinical tool. It is an end-to-end engineering demonstration of ap
 <table>
 <tr>
 <td><img src="./assets/dashboard.png" alt="Dashboard" width="420"/></td>
-<td><img src="./assets/assessment.png" alt="Streaming Assessment" width="420"/></td>
+<td><img src="./assets/architecture.png" alt="Pipeline Architecture" width="420"/></td>
 </tr>
 <tr>
 <td align="center"><sub>Dashboard — risk overview and recent assessments</sub></td>
-<td align="center"><sub>Animated 6-stage streaming pipeline</sub></td>
+<td align="center"><sub>Pipeline Architecture — multi-branch fusion workflow</sub></td>
 </tr>
 <tr>
 <td><img src="./assets/cardiobot.png" alt="CardioBot" width="420"/></td>
@@ -51,6 +51,14 @@ This is not a clinical tool. It is an end-to-end engineering demonstration of ap
 <tr>
 <td align="center"><sub>CardioBot — context-aware cardiac AI assistant</sub></td>
 <td align="center"><sub>Model comparison and calibration metrics</sub></td>
+</tr>
+<tr>
+<td><img src="./assets/assess1.png" alt="Streaming Assessment" width="420"/></td>
+<td><img src="./assets/prediction.png" alt="Prognosis Report" width="420"/></td>
+</tr>
+<tr>
+<td align="center"><sub>Animated 6-stage streaming pipeline</sub></td>
+<td align="center"><sub>Prognosis Report — explainable SHAP metrics</sub></td>
 </tr>
 </table>
 </div>
