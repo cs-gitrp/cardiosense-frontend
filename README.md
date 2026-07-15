@@ -100,12 +100,12 @@ Clinical branch recall: **90.2%** — intentionally optimized to minimize false 
 └────────────────────────┬────────────────────────────────────────┘
                          │ HTTPS / SSE
 ┌────────────────────────▼────────────────────────────────────────┐
-│                    FastAPI (Granian ASGI)                        │
-│                                                                  │
+│                    FastAPI (Granian ASGI)                       │
+│                                                                 │
 │  POST /assess/run-stream  ──►  6-stage SSE pipeline             │
 │  GET  /insights/*         ──►  model metrics, SHAP, calibration │
 │  POST /cardiobot/chat     ──►  Groq (llama-3.1-8b-instant)      │
-│                                                                  │
+│                                                                 │
 │  ┌────────────────────────────────────────────────────────┐     │
 │  │                   ML Inference Layer                   │     │
 │  │                                                        │     │
@@ -122,7 +122,7 @@ Clinical branch recall: **90.2%** — intentionally optimized to minimize false 
 │  │                   │                                    │     │
 │  │        SHAP explanations + risk grade                  │     │
 │  └────────────────────────────────────────────────────────┘     │
-│                                                                  │
+│                                                                 │
 │  SQLAlchemy 2.0 ──► Supabase PostgreSQL (ap-south-1)            │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -252,7 +252,7 @@ cardiosense-frontend/
 | Repository | Description |
 |---|---|
 | [cardiosense-backend](https://github.com/cs-gitrp/cardiosense-backend) | FastAPI backend · ML inference · SSE streaming · Supabase |
-| [cardiosense-notebooks](https://github.com/cs-gitrp/cardiosense-notebooks) | 13 Jupyter notebooks — full ML pipeline from raw data to deployed model |
+| [cardiosense-notebooks](https://github.com/cs-gitrp/cardiosense-backend/tree/main/research/notebooks) | 13 Jupyter notebooks — full ML pipeline from raw data to deployed model |
 
 ---
 
