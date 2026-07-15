@@ -65,24 +65,29 @@ This is not a clinical tool. It is an end-to-end engineering demonstration of ap
 
 ---
 
-## Model performance
+## Model Performance
 
-All metrics are on held-out test sets. Bootstrap CI at n=1000.
+Performance metrics are reported on independently held-out test sets.
+Bootstrap confidence intervals were computed using **1000 bootstrap resamples**.
 
 | Branch | AUC | 95% CI | Brier Score | ECE |
-|---|---|---|---|---|
+|--------|------:|:---------------:|------:|------:|
 | ECG (CNN) | **0.9424** | 0.9347 – 0.9504 | 0.0943 | 0.034 |
-| Clinical (RF) | **0.9266** | 0.8887 – 0.9582 | — | — |
-| **Fused** | **0.9582** | 0.9445 – 0.9719 | — | — |
+| Clinical (RF) | **0.9266** | 0.8887 – 0.9582 | 0.1130 | *See calibration analysis* |
 
-Clinical branch recall: **90.2%** — tuned to minimize false negatives, which matter more in cardiac risk screening than false positives.
+> **Fusion module:** CardioSense uses a **confidence-adaptive decision-level fusion** mechanism built on calibrated branch probabilities. Because the clinical (UCI Heart Disease) and ECG (PTB-XL) datasets originate from different patient cohorts and are **not patient-paired**, the fusion component is validated as an **architectural decision module** rather than through a combined held-out accuracy metric. Therefore, **no aggregate Fusion AUC is reported**.
 
-**Key design decisions that earned these numbers:**
+Clinical branch recall: **90.2%** — intentionally optimized to minimize false negatives, which are more critical in cardiac risk screening than false positives.
 
-- `GroupShuffleSplit` on `patient_id` — prevents patient leakage between train and test in PTB-XL (multi-record patients)  
-- Gamma=3 Platt scaling — aggressive calibration toward the positive class; ECE drops to 0.034  
-- Missingness treated as an explicit feature — not imputed away, encoded as a signal in the clinical branch  
-- CNN-only ECG architecture — CNN-LSTM evaluated in ablation, underperformed; dropped
+**Key design decisions contributing to these results:**
+
+- Patient-grouped **GroupShuffleSplit** on `patient_id` eliminated patient leakage in PTB-XL by ensuring that no patient's ECGs appeared across multiple splits.
+- Confidence calibration using **Platt Scaling** before fusion improved probability reliability, reducing ECG Expected Calibration Error (ECE) to **0.034**.
+- Clinical missing values were modeled as explicit information through engineered missingness indicators instead of being discarded or blindly imputed.
+- Three ECG architectures were evaluated during ablation. A **3-block CNN** consistently outperformed both CNN-LSTM variants and was selected as the final ECG architecture.
+- Confidence-adaptive fusion dynamically adjusts branch influence according to calibrated prediction confidence, replacing conventional fixed-weight multimodal fusion.
+- Model explanations combine **SHAP** (clinical branch) and **Integrated Gradients** (ECG branch) to provide modality-specific interpretability.
+- Performance uncertainty is quantified using **1000-bootstrap confidence intervals** for robust evaluation rather than relying solely on point estimates.
 
 ---
 
@@ -262,7 +267,7 @@ cardiosense-frontend/
 
 ## Author
 
-**Chandan Singh** · B.Tech CSE (AI/ML), KCC Institute of Technology & Management  
+**Chandan Singh** · B.Tech CSE (AI/ML)
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-chandan--singh-0077b5?style=flat-square&logo=linkedin)](https://linkedin.com/in/chandan-singh-a23563304)
 [![GitHub](https://img.shields.io/badge/GitHub-cs--gitrp-181717?style=flat-square&logo=github)](https://github.com/cs-gitrp)
